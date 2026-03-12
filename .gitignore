@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 .venv/
 papers/
+.DS_Store
+data/
+logs/
+
