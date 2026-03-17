@@ -39,8 +39,8 @@ def main():
 
     steps = [
         # ("fetch_tmdb_metadata", "scripts/fetch_tmdb_metadata.py"),
-        ("build_pre_neo4j_tables", "scripts/build_pre_neo4j_tables_-2.py"),
-        ("build_graph_dataset", "scripts/build_graph_dataset_-1.py"),
+        #("build_pre_neo4j_tables", "scripts/build_pre_neo4j_tables_-2.py"),
+        #("build_graph_dataset", "scripts/build_graph_dataset_-1.py"),
         ("build_neo4j", "scripts/build_neo4j.py"),
     ]
 

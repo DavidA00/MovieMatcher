@@ -1,54 +1,87 @@
-import pandas as pd
+import os
 import networkx as nx
 import matplotlib.pyplot as plt
-from pathlib import Path
+from neo4j import GraphDatabase
+from dotenv import load_dotenv
 
-DATA = Path("data/graph")
+load_dotenv()
 
-movies = pd.read_csv(DATA / "graph_movies.csv")
-actors = pd.read_csv(DATA / "graph_movie_actor.csv")
-genres = pd.read_csv(DATA / "graph_movie_genre.csv")
+URI = os.getenv("NEO4J_URI")
+USER = os.getenv("NEO4J_USERNAME")
+PASSWORD = os.getenv("NEO4J_PASSWORD")
 
-title_lookup = dict(zip(movies["movieId"], movies["title_clean"]))
+driver = GraphDatabase.driver(URI, auth=(USER, PASSWORD))
 
-def visualize_movie(movie_name):
 
-    movie_row = movies[movies["title_clean"].str.contains(movie_name, case=False)]
+def fetch_neighborhood(movie_title, limit=200):
 
-    if len(movie_row) == 0:
-        print("Movie not found")
-        return
+    query = """
+    MATCH (m:Movie {title:$title})
 
-    movie_id = movie_row.iloc[0]["movieId"]
-    movie_title = movie_row.iloc[0]["title_clean"]
+    OPTIONAL MATCH (m)-[:HAS_ACTOR]->(a:Actor)
+    OPTIONAL MATCH (m)-[:HAS_GENRE]->(g:Genre)
+    OPTIONAL MATCH (m)-[:SPOKEN_LANGUAGE]->(l:Language)
+    OPTIONAL MATCH (m)-[:ORIGIN_COUNTRY]->(c:Country)
+    OPTIONAL MATCH (m)-[:HAS_KEYWORD]->(k:Keyword)
 
-    print("Visualizing:", movie_title)
+    RETURN m,a,g,l,c,k
+    LIMIT $limit
+    """
+
+    with driver.session() as session:
+
+        result = session.run(query, title=movie_title, limit=limit)
+
+        nodes = []
+        edges = []
+
+        for r in result:
+
+            movie = r["m"]["title"]
+
+            nodes.append(("movie", movie))
+
+            if r["a"]:
+                actor = r["a"]["name"]
+                nodes.append(("actor", actor))
+                edges.append((movie, actor))
+
+            if r["g"]:
+                genre = r["g"]["name"]
+                nodes.append(("genre", genre))
+                edges.append((movie, genre))
+
+            if r["l"]:
+                lang = r["l"]["name"]
+                nodes.append(("language", lang))
+                edges.append((movie, lang))
+
+            if r["c"]:
+                country = r["c"]["code"]
+                nodes.append(("country", country))
+                edges.append((movie, country))
+
+            if r["k"]:
+                keyword = r["k"]["name"]
+                nodes.append(("keyword", keyword))
+                edges.append((movie, keyword))
+
+        return nodes, edges
+
+
+def visualize(movie_title):
+
+    nodes, edges = fetch_neighborhood(movie_title)
 
     G = nx.Graph()
 
-    G.add_node(movie_title, type="movie")
+    for t, n in nodes:
+        G.add_node(n, type=t)
 
-    # actors
-    movie_actors = actors[actors["movieId"] == movie_id]
+    for u, v in edges:
+        G.add_edge(u, v)
 
-    for _, row in movie_actors.iterrows():
-
-        actor = row["actor_name"]
-
-        G.add_node(actor, type="actor")
-        G.add_edge(movie_title, actor)
-
-    # genres
-    movie_genres = genres[genres["movieId"] == movie_id]
-
-    for _, row in movie_genres.iterrows():
-
-        genre = row["genre_name"]
-
-        G.add_node(genre, type="genre")
-        G.add_edge(movie_title, genre)
-
-    pos = nx.spring_layout(G, seed=42)
+    pos = nx.spring_layout(G, k=0.6)
 
     colors = []
 
@@ -58,26 +91,41 @@ def visualize_movie(movie_name):
 
         if t == "movie":
             colors.append("red")
+
         elif t == "actor":
-            colors.append("lightblue")
-        else:
+            colors.append("skyblue")
+
+        elif t == "genre":
             colors.append("green")
 
-    plt.figure(figsize=(10,8))
+        elif t == "language":
+            colors.append("orange")
+
+        elif t == "country":
+            colors.append("purple")
+
+        elif t == "keyword":
+            colors.append("yellow")
+
+        else:
+            colors.append("grey")
+
+    plt.figure(figsize=(12,10))
 
     nx.draw(
         G,
         pos,
-        with_labels=True,
         node_color=colors,
-        node_size=1200,
+        with_labels=True,
+        node_size=900,
         font_size=8
     )
 
     plt.title(movie_title)
+
     plt.show()
 
 
 if __name__ == "__main__":
 
-    visualize_movie("Inception")
+    visualize("Inception")

@@ -1,0 +1,80 @@
+2026-03-15 00:08:42,983 INFO Loading embeddings from GAT_files
+2026-03-15 00:08:43,020 INFO   semantic_embeddings: (59328, 256)
+2026-03-15 00:08:43,047 INFO   graph_emb_movie: (59328, 256)
+2026-03-15 00:08:43,047 INFO   graph_emb_genre: (23, 256)
+2026-03-15 00:08:43,060 INFO   graph_emb_director: (25966, 256)
+2026-03-15 00:08:43,092 INFO   graph_emb_actor: (65477, 256)
+2026-03-15 00:08:43,097 INFO   graph_emb_keyword: (10068, 256)
+2026-03-15 00:08:43,098 INFO   graph_emb_language: (160, 256)
+2026-03-15 00:08:43,098 INFO   graph_emb_country: (173, 256)
+2026-03-15 00:08:43,099 INFO   graph_emb_decade: (15, 256)
+2026-03-15 00:08:43,106 INFO Vocab sizes: movies=59328, genres=23, directors=25966, actors=65477, keywords=10068, languages=160, countries=173, decades=15
+2026-03-15 00:08:43,508 INFO ✅ Neo4j connected
+2026-03-15 00:08:43,509 INFO Creating vector indexes…
+2026-03-15 00:08:44,028 INFO ✅ Vector indexes ready
+2026-03-15 00:08:44,029 INFO Fetching existing IDs from Neo4j…
+2026-03-15 00:08:55,142 INFO   Neo4j: 59328 movies, 23 genres, 25966 directors, 67423 actors
+2026-03-15 00:08:55,142 INFO Writing Movie embeddings (semantic + graph)…
+2026-03-15 00:26:31,144 INFO   Movies → matched: 59328, skipped: 0
+2026-03-15 00:26:31,145 INFO Writing Genre embeddings…
+2026-03-15 00:26:31,472 INFO   Genre → matched: 23, skipped: 0
+2026-03-15 00:26:31,473 INFO Writing Director embeddings…
+2026-03-15 00:29:10,861 INFO   Director → matched: 25966, skipped: 0
+2026-03-15 00:29:10,861 INFO Writing Actor embeddings…
+2026-03-15 01:03:05,278 ERROR [#C2BE]  _: <CONNECTION> error: Failed to read from defunct connection IPv4Address(('p-babf0a79-3ef6-0001.production-orch-0987.neo4j.io', 7687)) (ResolvedIPv4Address(('35.227.44.229', 7687))): TimeoutError('The read operation timed out')
+2026-03-15 01:06:03,045 INFO Loading embeddings from GAT_files
+2026-03-15 01:06:03,072 INFO   semantic_embeddings: (59328, 256)
+2026-03-15 01:06:03,096 INFO   graph_emb_movie: (59328, 256)
+2026-03-15 01:06:03,097 INFO   graph_emb_genre: (23, 256)
+2026-03-15 01:06:03,108 INFO   graph_emb_director: (25966, 256)
+2026-03-15 01:06:03,142 INFO   graph_emb_actor: (65477, 256)
+2026-03-15 01:06:03,150 INFO   graph_emb_keyword: (10068, 256)
+2026-03-15 01:06:03,150 INFO   graph_emb_language: (160, 256)
+2026-03-15 01:06:03,151 INFO   graph_emb_country: (173, 256)
+2026-03-15 01:06:03,151 INFO   graph_emb_decade: (15, 256)
+2026-03-15 01:06:03,159 INFO Vocab sizes: movies=59328, genres=23, directors=25966, actors=65477, keywords=10068, languages=160, countries=173, decades=15
+2026-03-15 01:06:03,585 INFO ✅ Neo4j connected
+2026-03-15 01:06:03,585 INFO Creating vector indexes…
+2026-03-15 01:06:03,674 INFO Received notification from DBMS server: <GqlStatusObject gql_status='00NA0', status_description='note: successful completion - index or constraint already exists. The command \'CREATE VECTOR INDEX movie_semantic_idx IF NOT EXISTS FOR (e:Movie) ON (e.embedding_semantic) OPTIONS {indexConfig: {`vector.dimensions`: 256, `vector.similarity_function`: "cosine"}}\' has no effect. The index or constraint specified by \'VECTOR INDEX movie_semantic_idx FOR (e:Movie) ON (e.embedding_semantic)\' already exists.', position=None, raw_classification='SCHEMA', classification=<NotificationClassification.SCHEMA: 'SCHEMA'>, raw_severity='INFORMATION', severity=<NotificationSeverity.INFORMATION: 'INFORMATION'>, diagnostic_record={'_classification': 'SCHEMA', '_severity': 'INFORMATION', 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: "CREATE VECTOR INDEX movie_semantic_idx IF NOT EXISTS\n        FOR (m:Movie) ON m.embedding_semantic\n        OPTIONS {indexConfig: {\n            `vector.dimensions`: 256,\n            `vector.similarity_function`: 'cosine'\n        }}"
+2026-03-15 01:06:03,716 INFO Received notification from DBMS server: <GqlStatusObject gql_status='00NA0', status_description='note: successful completion - index or constraint already exists. The command \'CREATE VECTOR INDEX movie_graph_idx IF NOT EXISTS FOR (e:Movie) ON (e.embedding_graph) OPTIONS {indexConfig: {`vector.dimensions`: 256, `vector.similarity_function`: "cosine"}}\' has no effect. The index or constraint specified by \'VECTOR INDEX movie_graph_idx FOR (e:Movie) ON (e.embedding_graph)\' already exists.', position=None, raw_classification='SCHEMA', classification=<NotificationClassification.SCHEMA: 'SCHEMA'>, raw_severity='INFORMATION', severity=<NotificationSeverity.INFORMATION: 'INFORMATION'>, diagnostic_record={'_classification': 'SCHEMA', '_severity': 'INFORMATION', 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: "CREATE VECTOR INDEX movie_graph_idx IF NOT EXISTS\n        FOR (m:Movie) ON m.embedding_graph\n        OPTIONS {indexConfig: {\n            `vector.dimensions`: 256,\n            `vector.similarity_function`: 'cosine'\n        }}"
+2026-03-15 01:06:03,759 INFO Received notification from DBMS server: <GqlStatusObject gql_status='00NA0', status_description='note: successful completion - index or constraint already exists. The command \'CREATE VECTOR INDEX genre_graph_idx IF NOT EXISTS FOR (e:Genre) ON (e.embedding_graph) OPTIONS {indexConfig: {`vector.dimensions`: 256, `vector.similarity_function`: "cosine"}}\' has no effect. The index or constraint specified by \'VECTOR INDEX genre_graph_idx FOR (e:Genre) ON (e.embedding_graph)\' already exists.', position=None, raw_classification='SCHEMA', classification=<NotificationClassification.SCHEMA: 'SCHEMA'>, raw_severity='INFORMATION', severity=<NotificationSeverity.INFORMATION: 'INFORMATION'>, diagnostic_record={'_classification': 'SCHEMA', '_severity': 'INFORMATION', 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: "CREATE VECTOR INDEX genre_graph_idx IF NOT EXISTS\n        FOR (g:Genre) ON g.embedding_graph\n        OPTIONS {indexConfig: {\n            `vector.dimensions`: 256,\n            `vector.similarity_function`: 'cosine'\n        }}"
+2026-03-15 01:06:03,803 INFO Received notification from DBMS server: <GqlStatusObject gql_status='00NA0', status_description='note: successful completion - index or constraint already exists. The command \'CREATE VECTOR INDEX director_graph_idx IF NOT EXISTS FOR (e:Director) ON (e.embedding_graph) OPTIONS {indexConfig: {`vector.dimensions`: 256, `vector.similarity_function`: "cosine"}}\' has no effect. The index or constraint specified by \'VECTOR INDEX director_graph_idx FOR (e:Director) ON (e.embedding_graph)\' already exists.', position=None, raw_classification='SCHEMA', classification=<NotificationClassification.SCHEMA: 'SCHEMA'>, raw_severity='INFORMATION', severity=<NotificationSeverity.INFORMATION: 'INFORMATION'>, diagnostic_record={'_classification': 'SCHEMA', '_severity': 'INFORMATION', 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: "CREATE VECTOR INDEX director_graph_idx IF NOT EXISTS\n        FOR (d:Director) ON d.embedding_graph\n        OPTIONS {indexConfig: {\n            `vector.dimensions`: 256,\n            `vector.similarity_function`: 'cosine'\n        }}"
+2026-03-15 01:06:03,848 INFO Received notification from DBMS server: <GqlStatusObject gql_status='00NA0', status_description='note: successful completion - index or constraint already exists. The command \'CREATE VECTOR INDEX decade_graph_idx IF NOT EXISTS FOR (e:Decade) ON (e.embedding_graph) OPTIONS {indexConfig: {`vector.dimensions`: 256, `vector.similarity_function`: "cosine"}}\' has no effect. The index or constraint specified by \'VECTOR INDEX decade_graph_idx FOR (e:Decade) ON (e.embedding_graph)\' already exists.', position=None, raw_classification='SCHEMA', classification=<NotificationClassification.SCHEMA: 'SCHEMA'>, raw_severity='INFORMATION', severity=<NotificationSeverity.INFORMATION: 'INFORMATION'>, diagnostic_record={'_classification': 'SCHEMA', '_severity': 'INFORMATION', 'OPERATION': '', 'OPERATION_CODE': '0', 'CURRENT_SCHEMA': '/'}> for query: "CREATE VECTOR INDEX decade_graph_idx IF NOT EXISTS\n        FOR (dc:Decade) ON dc.embedding_graph\n        OPTIONS {indexConfig: {\n            `vector.dimensions`: 256,\n            `vector.similarity_function`: 'cosine'\n        }}"
+2026-03-15 01:06:03,848 INFO ✅ Vector indexes ready
+2026-03-15 01:06:03,848 INFO Fetching existing IDs from Neo4j…
+2026-03-15 01:06:14,462 INFO   Neo4j: 59328 movies, 23 genres, 25966 directors, 67423 actors
+2026-03-15 01:06:14,463 INFO Writing Movie embeddings (semantic + graph)…
+2026-03-15 01:28:53,906 INFO   Movies → matched: 59328, skipped: 0
+2026-03-15 01:28:53,908 INFO Writing Genre embeddings…
+2026-03-15 01:28:53,908 INFO Writing Director embeddings…
+2026-03-15 01:28:53,908 INFO Writing Actor embeddings…
+2026-03-15 01:44:38,663 INFO   Actor → matched: 65355, skipped: 122
+2026-03-15 01:44:38,663 INFO Writing Keyword embeddings…
+2026-03-15 01:46:54,857 INFO   Keyword → matched: 10068, skipped: 0
+2026-03-15 01:46:54,857 INFO Writing Language embeddings…
+2026-03-15 01:46:55,058 INFO   Language → matched: 160, skipped: 0
+2026-03-15 01:46:55,058 INFO Writing Country embeddings…
+2026-03-15 01:46:55,267 INFO   Country → matched: 173, skipped: 0
+2026-03-15 01:46:55,267 INFO Merging Decade nodes + embeddings…
+2026-03-15 01:46:56,085 INFO Creating Movie→Decade edges from Movie.year…
+2026-03-15 01:46:58,237 INFO   IN_DECADE edges: 59,326
+2026-03-15 01:46:58,237 INFO ✅ Decade nodes written: 15
+2026-03-15 01:46:58,237 INFO 
+=======================================================
+2026-03-15 01:46:58,237 INFO RECONCILIATION SUMMARY
+2026-03-15 01:46:58,238 INFO =======================================================
+2026-03-15 01:46:58,851 INFO   Movie.embedding_semantic: 59,328/59,328 (100.0%)
+2026-03-15 01:46:59,464 INFO   Movie.embedding_graph: 59,328/59,328 (100.0%)
+2026-03-15 01:46:59,541 INFO   Genre.embedding_graph: 23/23 (100.0%)
+2026-03-15 01:46:59,627 INFO   Director.embedding_graph: 0/25,966 (0.0%)
+2026-03-15 01:46:59,718 INFO   Actor.embedding_graph: 0/67,423 (0.0%)
+2026-03-15 01:46:59,785 INFO   Decade.embedding_graph: 15/15 (100.0%)
+2026-03-15 01:46:59,803 INFO 
+  ⚠️  122 nodes skipped → neo4j_upload_skipped.csv
+2026-03-15 01:46:59,803 INFO   These are nodes present in the embedding file but absent
+2026-03-15 01:46:59,803 INFO   from Neo4j. Most likely cause: the full-run movie pool
+2026-03-15 01:46:59,803 INFO   includes a movie/entity not in your original Neo4j load.
+2026-03-15 01:46:59,803 INFO   Action: inspect the CSV; if large, re-run the Neo4j loader
+2026-03-15 01:46:59,803 INFO   for the missing entries before re-running this script.
+2026-03-15 01:46:59,803 INFO =======================================================
+2026-03-15 01:46:59,803 INFO ✅ Upload complete

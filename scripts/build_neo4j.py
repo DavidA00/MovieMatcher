@@ -49,13 +49,39 @@ directors_path = Path(DATA) / "graph_movie_director.csv"
 keywords = pd.read_csv(keywords_path) if keywords_path.exists() else pd.DataFrame()
 directors = pd.read_csv(directors_path) if directors_path.exists() else pd.DataFrame()
 
-def run_query_in_batches(query: str, rows: list[dict], stage: str, batch_size: int = 5000):
+def run_query_in_batches(
+    query: str,
+    rows: list[dict],
+    stage: str,
+    batch_size: int = 5000,
+    skip_first: int = 0,
+):
     if not rows:
         log.info("[%s] 0 rows, skipping", stage)
         return
 
+    if skip_first < 0:
+        raise ValueError(f"skip_first must be >= 0 (got {skip_first})")
+
+    if skip_first:
+        if skip_first >= len(rows):
+            log.info(
+                "[%s] skip_first=%s >= total=%s, nothing to load",
+                stage,
+                skip_first,
+                len(rows),
+            )
+            return
+        rows = rows[skip_first:]
+
     total = len(rows)
-    log.info("[%s] loading %s rows (batch_size=%s)", stage, total, batch_size)
+    log.info(
+        "[%s] loading %s rows (batch_size=%s, skip_first=%s)",
+        stage,
+        total,
+        batch_size,
+        skip_first,
+    )
 
     with driver.session() as session:
         for start in range(0, total, batch_size):
@@ -92,7 +118,9 @@ run_query_in_batches(query, movie_rows, stage="movies")
 # Genres (nodes + edges)
 # -------------------
 
-genre_rows = genres.to_dict("records")
+# Skip rows with NaN in key fields so we never create invalid links
+genre_cols = [c for c in ["movieId", "genre_name"] if c in genres.columns]
+genre_rows = genres.dropna(subset=genre_cols).to_dict("records") if genre_cols else []
 
 query = """
 UNWIND $rows AS row
@@ -102,13 +130,16 @@ MATCH (m:Movie {movieId: row.movieId})
 MERGE (m)-[:HAS_GENRE]->(g)
 """
 
+
 run_query_in_batches(query, genre_rows, stage="genres")
 
 # -------------------
 # Actors (nodes + edges)
 # -------------------
 
-actor_rows = actors.to_dict("records")
+# Skip rows with NaN in key fields (e.g. character) so we never create invalid links
+actor_cols = [c for c in ["movieId", "actor_id", "actor_name", "character"] if c in actors.columns]
+actor_rows = actors.dropna(subset=actor_cols).to_dict("records") if actor_cols else []
 
 query = """
 UNWIND $rows AS row
@@ -119,13 +150,19 @@ MATCH (m:Movie {movieId: row.movieId})
 MERGE (m)-[:HAS_ACTOR {character: row.character}]->(a)
 """
 
-run_query_in_batches(query, actor_rows, stage="actors")
+run_query_in_batches(
+    query,
+    actor_rows,
+    stage="actors",
+    skip_first=295000,
+)
 
 # -------------------
 # Languages (nodes + edges)
 # -------------------
 
-lang_rows = languages.to_dict("records")
+lang_cols = [c for c in ["movieId", "language_name"] if c in languages.columns]
+lang_rows = languages.dropna(subset=lang_cols).to_dict("records") if lang_cols else []
 
 query = """
 UNWIND $rows AS row
@@ -141,7 +178,8 @@ run_query_in_batches(query, lang_rows, stage="languages")
 # Countries (nodes + edges)
 # -------------------
 
-country_rows = countries.to_dict("records")
+country_cols = [c for c in ["movieId", "country_code"] if c in countries.columns]
+country_rows = countries.dropna(subset=country_cols).to_dict("records") if country_cols else []
 
 query = """
 UNWIND $rows AS row
@@ -158,7 +196,8 @@ run_query_in_batches(query, country_rows, stage="countries")
 # -------------------
 
 if not keywords.empty:
-    keyword_rows = keywords.to_dict("records")
+    kw_cols = [c for c in ["movieId", "keyword_name"] if c in keywords.columns]
+    keyword_rows = keywords.dropna(subset=kw_cols).to_dict("records") if kw_cols else []
     query = """
     UNWIND $rows AS row
     MERGE (k:Keyword {name: row.keyword_name})
@@ -175,7 +214,8 @@ else:
 # -------------------
 
 if not directors.empty:
-    director_rows = directors.to_dict("records")
+    dir_cols = [c for c in ["movieId", "director_id", "director_name"] if c in directors.columns]
+    director_rows = directors.dropna(subset=dir_cols).to_dict("records") if dir_cols else []
     query = """
     UNWIND $rows AS row
     MERGE (d:Director {directorId: row.director_id})
