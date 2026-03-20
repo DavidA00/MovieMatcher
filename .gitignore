@@ -7,4 +7,6 @@ papers/
 .DS_Store
 data/
 logs/
-
+backend/.env
+frontend/.next
+frontend/node_modules
