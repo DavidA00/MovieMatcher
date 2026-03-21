@@ -1044,6 +1044,80 @@ def movie_neighborhood(req: NeighborhoodRequest):
     return {"nodes": nodes, "links": links}
 
 
+# ── Graph-triggered search ────────────────────────────────────
+
+GRAPH_SEARCH_PROMPT = """You are a movie search assistant. A user was exploring a movie's knowledge graph and clicked on a specific node. Based on their profile and the node they selected, write a search query.
+
+USER PROFILE:
+Liked: {liked}
+Disliked: {disliked}
+Recent searches: {history}
+{group_context}
+
+THE USER CLICKED: {node_type} → "{node_name}"
+(This was on the knowledge graph of the movie "{source_movie}")
+
+Write a rich, natural-language search query (20-40 words) that captures what the user is looking for based on this click. Be specific about genre, tone, style, and themes. The query should feel like what the user would type if they could articulate what this node made them want to explore.
+
+Respond with ONLY the query text, nothing else. No quotes, no JSON, no explanation."""
+
+class GraphSearchRequest(BaseModel):
+    session_id: str
+    party_name: str = ""
+    node_type: str       # Genre, Director, Actor, Keyword, Decade
+    node_name: str       # e.g. "Christopher Nolan", "Action", "time travel"
+    source_movie: str = ""  # the movie whose graph they were exploring
+
+@app.post("/api/graph_search")
+def graph_search(req: GraphSearchRequest):
+    """Generate a query from a graph node click, then run hybrid search."""
+    t0 = time.time()
+    s = sessions.get(req.session_id, {})
+
+    liked = ", ".join(s.get("liked_titles", [])[:5]) or "none"
+    disliked = ", ".join(s.get("disliked_titles", [])[:3]) or "none"
+    history = ", ".join(s.get("search_history", [])[-5:]) or "none"
+
+    # Group context for round 2+
+    group_ctx = ""
+    if req.party_name and req.party_name in parties:
+        p = parties[req.party_name]
+        if p["round_summaries"]:
+            last = p["round_summaries"][-1]["summary"]
+            sims = last.get("similarities", "")
+            if isinstance(sims, list): sims = "; ".join(sims)
+            group_ctx = f"Group shared tastes: {sims[:200]}"
+
+    prompt = GRAPH_SEARCH_PROMPT.format(
+        liked=liked, disliked=disliked, history=history,
+        group_context=group_ctx,
+        node_type=req.node_type, node_name=req.node_name,
+        source_movie=req.source_movie,
+    )
+
+    try:
+        from langchain_core.messages import HumanMessage
+        response = _llm.invoke([HumanMessage(content=prompt)])
+        generated_query = _extract_text(response.content).strip().strip('"').strip("'")
+        print(f"[GRAPH_SEARCH] {req.node_type}:{req.node_name} → '{generated_query}'")
+
+        # Run hybrid search with the generated query
+        results = hybrid_search(generated_query, lam=0.6, n_pivots=5, k=30)
+        results = _enrich_metadata(results)[:10]
+
+        elapsed = time.time() - t0
+        return {
+            "query": generated_query,
+            "search_results": results,
+            "search_mode": "graph_triggered",
+            "elapsed_ms": int(elapsed * 1000),
+        }
+    except Exception as e:
+        print(f"[GRAPH_SEARCH] Error: {e}")
+        traceback.print_exc()
+        return {"query": f"movies with {req.node_name}", "search_results": [], "search_mode": "error", "elapsed_ms": 0}
+
+
 # ── FUSE: Party multiplayer system ────────────────────────────
 
 FUSE_SUMMARY_PROMPT = """You are a movie taste analyst helping a group of friends find a movie to watch together.

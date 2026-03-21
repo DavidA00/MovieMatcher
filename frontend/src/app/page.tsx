@@ -435,6 +435,71 @@ export default function HomePage() {
     try { const [d, n] = await Promise.all([api.getMovieDetail(movie.movieId), api.getNeighborhood(movie.movieId)]); setMovieDetail(d); setNeighborhood(n); } catch { } finally { setDetailLoading(false); }
   }, []);
 
+  // ── Graph-triggered actions ────────────────────────────────
+  const handleAddGenreFilterFromGraph = useCallback((genre: string) => {
+    setActiveGenres(p => p.includes(genre) ? p : [...p, genre]);
+    setGenreWeights({});
+  }, []);
+
+  const handleAddGenreMixerFromGraph = useCallback((genre: string) => {
+    // Add as first or second genre in the mixer
+    setGenreWeights(prev => {
+      const keys = Object.keys(prev);
+      if (keys.length === 0) return { [genre]: 1.0 };
+      if (keys.length === 1 && !prev[genre]) return { ...prev, [genre]: 0.5 };
+      return prev; // already 2 genres
+    });
+    setActiveGenres([]);
+  }, []);
+
+  const handleGraphSearch = useCallback(async (nodeType: string, nodeName: string, sourceMovie: string) => {
+    if (!sessionRef.current) return;
+    // Close the detail panel
+    setSelectedMovie(null); setMovieDetail(null); setNeighborhood(null);
+    // Switch to search view
+    setActiveView('search');
+    setIsSearching(true);
+
+    try {
+      const resp = await api.graphSearch({
+        session_id: sessionRef.current,
+        party_name: partyRef.current || '',
+        node_type: nodeType,
+        node_name: nodeName,
+        source_movie: sourceMovie,
+      });
+
+      // Set the generated query in the search bar
+      setQuery(resp.query);
+      queryRef.current = resp.query;
+
+      // Put results in search view
+      setSearchView(prev => ({
+        ...prev,
+        results: resp.search_results,
+        searchMode: resp.search_mode,
+        topScore: Math.max(...resp.search_results.map(r => r.score || r.sem_score || 0), 0),
+        elapsedMs: resp.elapsed_ms,
+        explanations: {},
+      }));
+      setIsSearching(false);
+
+      // Enrich in background
+      const movieIds = resp.search_results.map(r => r.movieId).filter(Boolean);
+      if (movieIds.length > 0 && resp.query) {
+        setIsEnriching(true);
+        try {
+          const e = await api.enrich({ query: resp.query, session_id: sessionRef.current!, movie_ids: movieIds, party_name: partyRef.current || '' });
+          setSearchView(prev => ({ ...prev, explanations: e.explanations || {}, reformulations: e.reformulations || [] }));
+          setSuggestedFilters(e.filter_suggestions || {});
+        } catch { } finally { setIsEnriching(false); }
+      }
+    } catch (err) {
+      console.error('Graph search error:', err);
+      setIsSearching(false);
+    }
+  }, []);
+
   // ── Filter toggles ────────────────────────────────────────
   const toggleGenre = useCallback((g: string) => { setActiveGenres(p => p.includes(g) ? p.filter(x => x !== g) : [...p, g]); setGenreWeights({}); }, []);
   const toggleDecade = useCallback((d: string) => { setActiveDecades(p => p.includes(d) ? p.filter(x => x !== d) : [...p, d]); setDecadeHints([]); }, []);
@@ -528,7 +593,10 @@ export default function HomePage() {
           groupPerspective={currentRound > 1 ? groupPerspectives[String(selectedMovie.movieId)] : undefined}
           isLoading={detailLoading} isLiked={likedIds.has(selectedMovie.movieId)} isDisliked={dislikedIds.has(selectedMovie.movieId)}
           onClose={() => { setSelectedMovie(null); setMovieDetail(null); setNeighborhood(null); }}
-          onFeedback={handleFeedback} />
+          onFeedback={handleFeedback}
+          onAddGenreFilter={handleAddGenreFilterFromGraph}
+          onAddGenreMixer={handleAddGenreMixerFromGraph}
+          onGraphSearch={handleGraphSearch} />
       )}
 
       {showLikedPanel && (

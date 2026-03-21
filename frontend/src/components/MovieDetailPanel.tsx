@@ -15,11 +15,15 @@ interface Props {
   isDisliked: boolean;
   onClose: () => void;
   onFeedback: (m: Movie, action: 'like' | 'dislike' | 'clear') => void;
+  onAddGenreFilter?: (genre: string) => void;
+  onAddGenreMixer?: (genre: string) => void;
+  onGraphSearch?: (nodeType: string, nodeName: string, sourceMovie: string) => void;
 }
 
 export default function MovieDetailPanel({
   movie, detail, neighborhood, explanation, groupPerspective, isLoading,
   isLiked, isDisliked, onClose, onFeedback,
+  onAddGenreFilter, onAddGenreMixer, onGraphSearch,
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -228,8 +232,13 @@ export default function MovieDetailPanel({
               <h3 className="text-xs font-semibold text-text-dim uppercase tracking-wider mb-3">
                 Knowledge graph neighborhood
               </h3>
-              <div className="bg-surface-0 rounded-lg border border-white/[0.04] overflow-hidden" style={{ height: 360 }}>
-                <ForceGraph data={neighborhood} />
+              <div className="bg-surface-0 rounded-lg border border-white/[0.04] overflow-hidden" style={{ height: 450 }}>
+                <ForceGraph
+                  data={neighborhood}
+                  onAddGenreFilter={onAddGenreFilter}
+                  onAddGenreMixer={onAddGenreMixer}
+                  onGraphSearch={(nodeType, nodeName) => onGraphSearch?.(nodeType, nodeName, movie.title || '')}
+                />
               </div>
             </div>
           )}

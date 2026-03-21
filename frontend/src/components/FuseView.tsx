@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as api from '@/lib/api';
 import type { PartyStatus, RoundSummary, SearchResult } from '@/lib/api';
+import { deleteUser } from '@/lib/firebase';
 import MovieGrid from './MovieGrid';
 
 interface Props {
@@ -57,9 +58,10 @@ export default function FuseView({
     finally { setIsFusing(false); }
   };
 
-  const handleRemovePlayer = async (targetSid: string) => {
+  const handleRemovePlayer = async (targetSid: string, targetName: string) => {
     try {
       const s = await api.partyRemove(sessionId, partyName, targetSid);
+      await deleteUser(partyName, targetName);
       setStatus(s);
     } catch (e: any) {
       setError(e?.message || 'Failed to remove player');
@@ -128,7 +130,7 @@ export default function FuseView({
                     {u.ready ? 'Ready' : 'Browsing'}
                   </div>
                   {imAdmin && !isMe && (
-                    <button onClick={() => handleRemovePlayer(u.session_id)}
+                    <button onClick={() => handleRemovePlayer(u.session_id, u.name)}
                       className="w-6 h-6 rounded-full bg-surface-2 hover:bg-red-500/20 text-text-dim hover:text-red-400 flex items-center justify-center text-[10px] transition-colors"
                       title={`Remove ${u.name}`}>
                       ✕

@@ -216,3 +216,18 @@ export const partyCancel = (sessionId: string, partyName: string) =>
 export const groupPerspective = (partyName: string, movieIds: number[]) =>
   post<{ perspectives: Record<string, string> }>(
     '/party/group_perspective', { party_name: partyName, movie_ids: movieIds });
+
+// ── Graph-triggered search ───────────────────────────────────
+
+export const graphSearch = (params: {
+  session_id: string;
+  party_name?: string;
+  node_type: string;
+  node_name: string;
+  source_movie?: string;
+}) => post<{
+  query: string;
+  search_results: SearchResult[];
+  search_mode: string;
+  elapsed_ms: number;
+}>('/graph_search', params);
