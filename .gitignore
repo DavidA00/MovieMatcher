@@ -10,3 +10,4 @@ logs/
 backend/.env
 frontend/.next
 frontend/node_modules
+

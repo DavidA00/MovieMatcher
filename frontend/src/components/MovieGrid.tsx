@@ -6,18 +6,18 @@ import MovieCard from './MovieCard';
 interface Props {
   movies: SearchResult[];
   explanations: Record<string, string>;
+  groupPerspectives?: Record<string, string>;
   likedIds: Set<number>;
   dislikedIds: Set<number>;
   onMovieClick: (m: SearchResult) => void;
   onFeedback: (m: SearchResult, action: 'like' | 'dislike' | 'clear') => void;
-  onAddToMixer: (m: SearchResult) => void;
   isLoading: boolean;
   isEnriching?: boolean;
 }
 
 export default function MovieGrid({
-  movies, explanations, likedIds, dislikedIds,
-  onMovieClick, onFeedback, onAddToMixer, isLoading, isEnriching,
+  movies, explanations, groupPerspectives, likedIds, dislikedIds,
+  onMovieClick, onFeedback, isLoading, isEnriching,
 }: Props) {
   if (isLoading) {
     return (
@@ -56,12 +56,12 @@ export default function MovieGrid({
           key={movie.movieId}
           movie={movie}
           explanation={explanations[String(movie.movieId)]}
+          groupPerspective={groupPerspectives?.[String(movie.movieId)]}
           isLiked={likedIds.has(movie.movieId)}
           isDisliked={dislikedIds.has(movie.movieId)}
           onClick={() => onMovieClick(movie)}
           onLike={() => onFeedback(movie, likedIds.has(movie.movieId) ? 'clear' : 'like')}
           onDislike={() => onFeedback(movie, dislikedIds.has(movie.movieId) ? 'clear' : 'dislike')}
-          onMix={() => onAddToMixer(movie)}
           index={i}
           isEnriching={isEnriching && !explanations[String(movie.movieId)]}
         />
