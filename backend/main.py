@@ -375,7 +375,7 @@ def _fast_search(
                 results = filtered
                 mode += "+filtered"
 
-        return results[:10], mode
+        return results, mode
 
     except Exception as e:
         print(f"[SEARCH] Error: {e}")
@@ -554,7 +554,8 @@ class SearchRequest(BaseModel):
     imdb_max: Optional[float] = None
     sort_by: str = "relevance"
     sort_dir: str = "desc"
-    k_fetch: int = 30  # how many candidates to fetch before filtering
+    k_fetch: int = 40  # internal, overridden by expansion logic
+    min_results: int = 10  # how many results the user wants after filtering
     steering_strength: float = 0.6  # 0-1, how strongly genre/era steering pulls results
 
 class EnrichRequest(BaseModel):
@@ -606,12 +607,8 @@ class AutocompleteRequest(BaseModel):
 
 def _validate_party_secret(secret: str) -> str:
     s = (secret or "").strip()
-    if not (8 <= len(s) <= 12):
-        raise HTTPException(400, "Party secret must be 8-12 characters")
-    has_letter = any(c.isalpha() for c in s)
-    has_digit = any(c.isdigit() for c in s)
-    if not (has_letter and has_digit):
-        raise HTTPException(400, "Party secret must include letters and numbers")
+    if len(s) < 8:
+        raise HTTPException(400, "Party secret must be at least 8 characters")
     return s
 
 def _join_party(user_name: str, party_name: str, sid: str):
@@ -729,13 +726,25 @@ def search(req: SearchRequest):
     }
 
     query = req.query or "popular well-rated movie"
-    results, mode = _fast_search(
-        query, filters, prefs,
-        lam=req.lam,
-        mixer_weights=req.mixer_weights or None,
-        k_fetch=req.k_fetch,
-        steering_strength=req.steering_strength,
-    )
+    min_needed = req.min_results
+
+    # ── Expanding search: retry with larger k_fetch until we have enough results after filtering ──
+    k = 40  # starting candidate pool
+    results = []
+    mode = ""
+    for attempt in range(4):  # max 4 doublings: 40 → 80 → 160 → 320
+        results, mode = _fast_search(
+            query, filters, prefs,
+            lam=req.lam,
+            mixer_weights=req.mixer_weights or None,
+            k_fetch=k,
+            steering_strength=req.steering_strength,
+        )
+        if len(results) >= min_needed:
+            break
+        k *= 2  # double and retry
+    results = results[:min_needed]  # trim to exactly what was requested
+
     results = _enrich_metadata(results)
 
     # ── Preference re-ranking ─────────────────────────────────
@@ -807,7 +816,14 @@ def search(req: SearchRequest):
         results.sort(key=lambda r: (r.get("title") or "").lower(), reverse=reverse)
     # else: "relevance" — keep original score order
 
-    top_score = max((r.get("score", r.get("sem_score", 0)) for r in results), default=0.0)
+    # Normalize scores to [0, 1] range
+    max_raw = max((r.get("score", r.get("sem_score", 0)) for r in results), default=1.0)
+    if max_raw > 0:
+        for r in results:
+            s_val = r.get("score", r.get("sem_score", 0))
+            r["score"] = min(1.0, s_val / max_raw) if max_raw > 1.0 else min(1.0, s_val)
+
+    top_score = max((r.get("score", 0) for r in results), default=0.0)
     elapsed = time.time() - t0
 
     # Track search history for Fuse

@@ -64,22 +64,22 @@ export default function MovieCard({
           </div>
         )}
 
-        {/* Like / Dislike buttons */}
-        <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Like / Dislike buttons — always visible */}
+        <div className="absolute top-2 left-2 flex gap-1.5">
           <button
             onClick={e => { e.stopPropagation(); onLike(); }}
-            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
               isLiked
-                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                : 'bg-black/50 backdrop-blur-sm text-white/70 hover:bg-emerald-500/80 hover:text-white'
+                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40 scale-110'
+                : 'bg-black/60 backdrop-blur-sm text-white/80 hover:bg-emerald-500/80 hover:text-white hover:scale-105'
             }`}
           >♥</button>
           <button
             onClick={e => { e.stopPropagation(); onDislike(); }}
-            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs transition-all ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
               isDisliked
-                ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
-                : 'bg-black/50 backdrop-blur-sm text-white/70 hover:bg-red-500/80 hover:text-white'
+                ? 'bg-red-500 text-white shadow-lg shadow-red-500/40 scale-110'
+                : 'bg-black/60 backdrop-blur-sm text-white/80 hover:bg-red-500/80 hover:text-white hover:scale-105'
             }`}
           >✕</button>
         </div>

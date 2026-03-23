@@ -28,14 +28,13 @@ function WelcomeScreen({ onJoin }: { onJoin: (name: string, party: string, sid: 
   useEffect(() => { partyRef.current?.focus(); }, []);
 
   const secret = partySecret.trim();
-  const hasLen = secret.length >= 8 && secret.length <= 12;
-  const hasLetter = /[A-Za-z]/.test(secret);
-  const hasDigit = /\d/.test(secret);
-  const secretValid = hasLen && hasLetter && hasDigit;
-  const canSubmit = name.trim().length > 0 && secretValid;
+  const secretValid = secret.length >= 8;
+  const canSubmit = name.trim().length > 0 && secret.length > 0;
 
   const handleSubmit = async () => {
-    if (!canSubmit || busy) return;
+    if (busy) return;
+    if (!secretValid) { setError('Party secret must be at least 8 characters'); return; }
+    if (!name.trim()) { setError('Please enter your name'); return; }
     setBusy(true); setError('');
     setStatus(mode === 'create' ? 'Creating party...' : 'Joining party...');
     try {
@@ -47,17 +46,31 @@ function WelcomeScreen({ onJoin }: { onJoin: (name: string, party: string, sid: 
     } catch (e: any) {
       setBusy(false);
       setStatus('');
-      setError(e?.message || 'Could not join party');
+      const msg = e?.message || '';
+      if (msg.includes('404') || msg.includes('not found')) setError('Party not found. Check your secret or create a new party.');
+      else if (msg.includes('409')) setError('A party with this secret already exists. Try joining instead.');
+      else setError(msg || 'Could not join party');
     }
   };
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface-0">
       <div className="w-full max-w-md px-6 animate-fade-in">
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <h1 className="text-4xl font-bold tracking-tight mb-2">
             <span className="text-accent">Movie</span><span className="text-text-primary">Matcher</span>
           </h1>
-          <p className="text-text-secondary text-sm">Find the perfect movie for everyone</p>
+          <p className="text-text-secondary text-sm mb-4">Find the perfect movie for everyone</p>
+          <div className="bg-surface-1/60 border border-white/[0.04] rounded-xl p-4 text-left space-y-2">
+            <p className="text-[12px] text-text-secondary leading-relaxed">
+              <strong className="text-text-primary">How it works:</strong> Search for movies by mood, vibe, or genre.
+              Like and dislike movies to teach the AI your taste. Use the Mixer to blend movies together,
+              or steer results with genre and era controls.
+            </p>
+            <p className="text-[12px] text-text-secondary leading-relaxed">
+              <strong className="text-text-primary">With friends:</strong> Everyone joins the same party, browses independently,
+              then hits <span className="text-purple-400 font-medium">Fuse</span> — the AI finds what everyone will enjoy together.
+            </p>
+          </div>
         </div>
         <div className="bg-surface-1 border border-white/[0.06] rounded-2xl p-8 shadow-2xl space-y-4">
           <div className="grid grid-cols-2 gap-2 bg-surface-2 p-1 rounded-xl">
@@ -78,10 +91,10 @@ function WelcomeScreen({ onJoin }: { onJoin: (name: string, party: string, sid: 
             <label className="block text-sm font-medium text-text-secondary mb-1.5">Party secret</label>
             <input ref={partyRef} type="password" value={partySecret} onChange={e => setPartySecret(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && secret) (document.getElementById('name-input') as HTMLInputElement)?.focus(); }}
-              placeholder="8-12 chars, letters + numbers" maxLength={12}
+              placeholder="Minimum 8 characters" maxLength={64}
               className="w-full bg-surface-2 border border-white/[0.08] rounded-xl px-4 py-3 text-base text-text-primary placeholder:text-text-dim/50 outline-none focus:border-accent/50 transition-colors" />
             <p className="text-[11px] text-text-dim mt-1">
-              Use 8-12 characters with at least one letter and one number.
+              Must be at least 8 characters. Share this with your friends to join.
             </p>
           </div>
           <div>
@@ -151,13 +164,14 @@ export default function HomePage() {
   const [genreWeights, setGenreWeights] = useState<Record<string, number>>({});
   const [decadeHints, setDecadeHints] = useState<string[]>([]);
 
-  const [lam, setLam] = useState(0.6);
+  const [lam, setLam] = useState(0.5);
   const [prefIntensity, setPrefIntensity] = useState(0.5);
   const [sortBy, setSortBy] = useState('relevance');
   const [sortDir, setSortDir] = useState('desc');
-  const [imdbMin, setImdbMin] = useState<number | null>(null);
-  const [imdbMax, setImdbMax] = useState<number | null>(null);
-  const [kFetch, setKFetch] = useState(30);
+  const [imdbMin, setImdbMin] = useState<number | null>(6);
+  const [searchPage, setSearchPage] = useState(0);
+  const [mixerPage, setMixerPage] = useState(0);
+  const [imdbMax] = useState<number | null>(null);
   const [steeringStrength, setSteeringStrength] = useState(0.6);
 
   const [liked, setLiked] = useState<FeedbackItem[]>([]);
@@ -207,7 +221,6 @@ export default function HomePage() {
       if (saved.sortDir) setSortDir(saved.sortDir);
       if (saved.imdbMin != null) setImdbMin(saved.imdbMin);
       if (saved.imdbMax != null) setImdbMax(saved.imdbMax);
-      if (saved.kFetch != null) setKFetch(saved.kFetch);
       if (saved.steeringStrength != null) setSteeringStrength(saved.steeringStrength);
       if (saved.mixerMovies?.length) setMixerMovies(saved.mixerMovies);
       if (saved.lastQuery) setQuery(saved.lastQuery);
@@ -223,12 +236,12 @@ export default function HomePage() {
     saveTimer.current = setTimeout(() => {
       saveUser(partyName, userName, {
         liked, disliked, activeGenres, activeDecades, genreWeights, decadeHints,
-        lam, prefIntensity, sortBy, sortDir, imdbMin, imdbMax, kFetch, steeringStrength,
+        lam, prefIntensity, sortBy, sortDir, imdbMin, imdbMax, steeringStrength,
         mixerMovies, lastQuery: query,
       });
     }, 2000);
   }, [userName, partyName, liked, disliked, activeGenres, activeDecades, genreWeights, decadeHints,
-      lam, prefIntensity, sortBy, sortDir, imdbMin, imdbMax, kFetch, steeringStrength, mixerMovies, query]);
+      lam, prefIntensity, sortBy, sortDir, imdbMin, imdbMax, steeringStrength, mixerMovies, query]);
 
   useEffect(() => {
     if (!sessionId || !partyName) return;
@@ -285,17 +298,17 @@ export default function HomePage() {
 
   // ── Core search ────────────────────────────────────────────
   const doSearchForView = useCallback(async (
-    target: 'search' | 'mixer', q: string, mixerW?: Record<string, number>,
+    target: 'search' | 'mixer', q: string, mixerW?: Record<string, number>, page?: number,
   ) => {
     if (!sessionRef.current) return;
     const isMixerSearch = !!mixerW && Object.keys(mixerW).length >= 2;
     if (!q.trim() && !isMixerSearch) return;
 
     enrichAbort.current?.abort();
-    // NOTE: do NOT clear reformTimer here — it's managed independently by the typing effect
     setIsSearching(true);
     setGroupPerspectives({});
     const viewSetter = target === 'mixer' ? setMixerView : setSearchView;
+    const p = page ?? (target === 'mixer' ? mixerPage : searchPage);
 
     try {
       const resp = await api.search({
@@ -305,7 +318,8 @@ export default function HomePage() {
         mixer_weights: mixerW || {}, lam,
         pref_intensity: prefIntensity,
         imdb_min: imdbMin, imdb_max: imdbMax, sort_by: sortBy, sort_dir: sortDir,
-        k_fetch: kFetch, steering_strength: steeringStrength,
+        steering_strength: steeringStrength,
+        min_results: 10 * (p + 1),
       });
 
       viewSetter(prev => ({ ...prev, results: resp.search_results, searchMode: resp.search_mode,
@@ -333,7 +347,7 @@ export default function HomePage() {
         }
       }
     } catch (err) { console.error('Search error:', err); setIsSearching(false); }
-  }, [genreWeights, decadeHints, activeGenres, activeDecades, lam, prefIntensity, sortBy, sortDir, imdbMin, imdbMax, kFetch, steeringStrength, currentRound]);
+  }, [genreWeights, decadeHints, activeGenres, activeDecades, lam, prefIntensity, sortBy, sortDir, imdbMin, imdbMax, searchPage, mixerPage, steeringStrength, currentRound]);
 
   const handleSubmit = useCallback(() => {
     if (activeView === 'mixer' && mixerRef.current.length >= 2) {
@@ -358,6 +372,12 @@ export default function HomePage() {
   }, [mixerMovies, activeView, doSearchForView]);
 
   // ── Auto-search: filter/settings ───────────────────────────
+  // Reset pages when filters change (not when pages themselves change)
+  useEffect(() => {
+    setSearchPage(0);
+    setMixerPage(0);
+  }, [activeGenres, activeDecades, genreWeights, decadeHints, sortBy, sortDir, imdbMin, imdbMax, steeringStrength]);
+
   useEffect(() => {
     if (activeView === 'fuse') return; // don't auto-search in fuse view
     clearTimeout(searchTimerRef.current);
@@ -368,7 +388,7 @@ export default function HomePage() {
     }, 400);
     return () => clearTimeout(searchTimerRef.current);
   }, [activeGenres, activeDecades, genreWeights, decadeHints, lam, prefIntensity, sortBy, sortDir,
-      imdbMin, imdbMax, kFetch, steeringStrength, activeView, doSearchForView]);
+      imdbMin, imdbMax, steeringStrength, activeView, doSearchForView]);
 
   // ── Typing reformulations ──────────────────────────────────
   const fetchReformulations = useCallback(async (q: string) => {
@@ -442,49 +462,35 @@ export default function HomePage() {
   }, []);
 
   const handleAddGenreMixerFromGraph = useCallback((genre: string) => {
-    // Add as first or second genre in the mixer
     setGenreWeights(prev => {
       const keys = Object.keys(prev);
-      if (keys.length === 0) return { [genre]: 1.0 };
-      if (keys.length === 1 && !prev[genre]) return { ...prev, [genre]: 0.5 };
-      return prev; // already 2 genres
+      if (keys.length >= 5 || prev[genre]) return prev;
+      const next = { ...prev, [genre]: 1 };
+      const total = Object.values(next).reduce((a, b) => a + b, 0);
+      for (const k of Object.keys(next)) next[k] = next[k] / total;
+      return next;
     });
     setActiveGenres([]);
   }, []);
 
   const handleGraphSearch = useCallback(async (nodeType: string, nodeName: string, sourceMovie: string) => {
     if (!sessionRef.current) return;
-    // Close the detail panel
     setSelectedMovie(null); setMovieDetail(null); setNeighborhood(null);
-    // Switch to search view
     setActiveView('search');
     setIsSearching(true);
-
     try {
       const resp = await api.graphSearch({
         session_id: sessionRef.current,
         party_name: partyRef.current || '',
-        node_type: nodeType,
-        node_name: nodeName,
-        source_movie: sourceMovie,
+        node_type: nodeType, node_name: nodeName, source_movie: sourceMovie,
       });
-
-      // Set the generated query in the search bar
-      setQuery(resp.query);
-      queryRef.current = resp.query;
-
-      // Put results in search view
+      setQuery(resp.query); queryRef.current = resp.query;
       setSearchView(prev => ({
-        ...prev,
-        results: resp.search_results,
-        searchMode: resp.search_mode,
+        ...prev, results: resp.search_results, searchMode: resp.search_mode,
         topScore: Math.max(...resp.search_results.map(r => r.score || r.sem_score || 0), 0),
-        elapsedMs: resp.elapsed_ms,
-        explanations: {},
+        elapsedMs: resp.elapsed_ms, explanations: {},
       }));
       setIsSearching(false);
-
-      // Enrich in background
       const movieIds = resp.search_results.map(r => r.movieId).filter(Boolean);
       if (movieIds.length > 0 && resp.query) {
         setIsEnriching(true);
@@ -494,10 +500,7 @@ export default function HomePage() {
           setSuggestedFilters(e.filter_suggestions || {});
         } catch { } finally { setIsEnriching(false); }
       }
-    } catch (err) {
-      console.error('Graph search error:', err);
-      setIsSearching(false);
-    }
+    } catch (err) { console.error('Graph search error:', err); setIsSearching(false); }
   }, []);
 
   // ── Filter toggles ────────────────────────────────────────
@@ -507,8 +510,18 @@ export default function HomePage() {
   const handleDecadeHintsChange = useCallback((h: string[]) => { setDecadeHints(h); if (h.length > 0) setActiveDecades([]); }, []);
   const handleClearAll = useCallback(() => {
     setActiveGenres([]); setActiveDecades([]); setGenreWeights({}); setDecadeHints([]);
-    setImdbMin(null); setImdbMax(null); setSortBy('relevance'); setSortDir('desc');
+    setImdbMin(6); setImdbMax(null); setSortBy('relevance'); setSortDir('desc');
+    setSearchPage(0); setMixerPage(0);
   }, []);
+
+  const handleMoreResults = useCallback(() => {
+    if (activeView === 'mixer') setMixerPage(p => p + 1);
+    else setSearchPage(p => p + 1);
+  }, [activeView]);
+
+  // Reset pages when query changes
+  useEffect(() => { setSearchPage(0); }, [query]);
+  useEffect(() => { setMixerPage(0); }, [mixerMovies]);
 
   const likedIds = new Set(liked.map(l => l.id));
   const dislikedIds = new Set(disliked.map(d => d.id));
@@ -520,8 +533,6 @@ export default function HomePage() {
       <TopBar userName={userName} partyName={partyName}
         isAdmin={isAdmin} partyMembers={partyMembers} sessionId={sessionId}
         view={activeView} onViewChange={setActiveView} currentRound={currentRound}
-        preferenceIntensity={prefIntensity} onPreferenceIntensityChange={setPrefIntensity}
-        lam={lam} onLamChange={setLam} kFetch={kFetch} onKFetchChange={setKFetch}
         steeringStrength={steeringStrength} onSteeringStrengthChange={setSteeringStrength}
         likedCount={liked.length} dislikedCount={disliked.length}
         mixerCount={mixerMovies.length} onShowLikedPanel={() => setShowLikedPanel(true)}
@@ -559,7 +570,7 @@ export default function HomePage() {
                 onClearAll={handleClearAll}
                 liked={liked} disliked={disliked} onShowLikedPanel={() => setShowLikedPanel(true)}
                 sortBy={sortBy} sortDir={sortDir} onSortChange={(by, dir) => { setSortBy(by); setSortDir(dir); }}
-                imdbMin={imdbMin} imdbMax={imdbMax} onImdbRangeChange={(min, max) => { setImdbMin(min); setImdbMax(max); }} />
+                imdbMin={imdbMin} onImdbMinChange={setImdbMin} />
 
               <div className="flex-1 min-w-0 pl-4 relative">
                 <StatusBar mode={currentView.searchMode} count={currentView.results.length}
@@ -581,6 +592,13 @@ export default function HomePage() {
                   groupPerspectives={currentRound > 1 ? groupPerspectives : undefined}
                   likedIds={likedIds} dislikedIds={dislikedIds} onMovieClick={handleMovieClick} onFeedback={handleFeedback}
                   isLoading={isSearching && currentView.results.length === 0} isEnriching={isEnriching} />
+
+                {currentView.results.length > 0 && !isSearching && (
+                  <button onClick={handleMoreResults}
+                    className="w-full py-3 text-sm text-accent hover:text-accent-light border border-accent/20 hover:border-accent/40 rounded-xl mt-2 mb-6 transition-colors">
+                    Load more results
+                  </button>
+                )}
               </div>
             </div>
           </>

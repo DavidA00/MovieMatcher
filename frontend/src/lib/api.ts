@@ -74,7 +74,7 @@ export const search = (params: {
   imdb_max?: number | null;
   sort_by?: string;
   sort_dir?: string;
-  k_fetch?: number;
+  min_results?: number;
   steering_strength?: number;
 }) => post<SearchResponse>('/search', {
   query: params.query || '',
@@ -84,13 +84,13 @@ export const search = (params: {
   active_genres: params.active_genres || [],
   active_decades: params.active_decades || [],
   mixer_weights: params.mixer_weights || {},
-  lam: params.lam ?? 0.6,
-  pref_intensity: params.pref_intensity ?? 0,
-  imdb_min: params.imdb_min ?? null,
+  lam: params.lam ?? 0.5,
+  pref_intensity: params.pref_intensity ?? 0.5,
+  imdb_min: params.imdb_min ?? 6,
   imdb_max: params.imdb_max ?? null,
   sort_by: params.sort_by || 'relevance',
   sort_dir: params.sort_dir || 'desc',
-  k_fetch: params.k_fetch ?? 30,
+  min_results: params.min_results ?? 10,
   steering_strength: params.steering_strength ?? 0.6,
 });
 
@@ -216,7 +216,6 @@ export const partyCancel = (sessionId: string, partyName: string) =>
 export const groupPerspective = (partyName: string, movieIds: number[]) =>
   post<{ perspectives: Record<string, string> }>(
     '/party/group_perspective', { party_name: partyName, movie_ids: movieIds });
-
 // ── Graph-triggered search ───────────────────────────────────
 
 export const graphSearch = (params: {

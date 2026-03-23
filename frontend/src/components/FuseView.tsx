@@ -68,6 +68,18 @@ export default function FuseView({
     }
   };
 
+  // Auto-trigger fuse when all users are ready
+  const fuseTriggerRef = useRef(false);
+  useEffect(() => {
+    if (status?.all_ready && !isFusing && !fuseTriggerRef.current) {
+      fuseTriggerRef.current = true;
+      handleFuse();
+    }
+    if (!status?.all_ready) {
+      fuseTriggerRef.current = false;
+    }
+  }, [status?.all_ready, isFusing, handleFuse]);
+
   if (!status) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -94,6 +106,20 @@ export default function FuseView({
           When everyone is ready, the AI analyzes all preferences and suggests movies for the group
         </p>
       </div>
+
+      {/* Explanation */}
+      {status.round_summaries.length === 0 && (
+        <div className="bg-surface-1/60 border border-white/[0.04] rounded-xl p-4 max-w-lg mx-auto space-y-2">
+          <p className="text-[12px] text-text-secondary leading-relaxed">
+            <strong className="text-text-primary">How Fuse works:</strong> Once everyone presses ready,
+            the AI compares everyone&apos;s liked movies, dislikes, and search history to find common ground.
+          </p>
+          <p className="text-[12px] text-text-secondary leading-relaxed">
+            It generates a group taste profile, crafts a custom search query, and suggests movies
+            the whole group would enjoy. After reviewing, you can start a new round to refine further.
+          </p>
+        </div>
+      )}
 
       {/* Users grid */}
       <div className="space-y-3">
@@ -145,32 +171,29 @@ export default function FuseView({
 
       {/* Controls */}
       <div className="flex flex-col items-center gap-3">
-        <button onClick={handleToggleReady}
-          className={`px-8 py-3 rounded-xl text-base font-semibold transition-all ${
-            imReady
-              ? 'bg-surface-2 border border-white/[0.08] text-text-secondary hover:bg-surface-3'
-              : 'bg-purple-500 hover:bg-purple-400 text-white shadow-lg shadow-purple-500/20'
-          }`}>
-          {imReady ? 'Cancel — keep browsing' : "I'm ready to Fuse!"}
-        </button>
+        {isFusing ? (
+          <div className="flex items-center gap-3 px-8 py-3.5 bg-gradient-to-r from-purple-500/20 to-accent/20 rounded-xl border border-purple-500/20">
+            <svg className="w-5 h-5 text-purple-400 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-sm text-purple-300 font-medium">Analyzing everyone&apos;s preferences...</span>
+          </div>
+        ) : (
+          <button onClick={handleToggleReady}
+            className={`px-8 py-3 rounded-xl text-base font-semibold transition-all ${
+              imReady
+                ? 'bg-surface-2 border border-white/[0.08] text-text-secondary hover:bg-surface-3'
+                : 'bg-purple-500 hover:bg-purple-400 text-white shadow-lg shadow-purple-500/20'
+            }`}>
+            {imReady ? 'Cancel — keep browsing' : "I'm ready!"}
+          </button>
+        )}
         <p className="text-xs text-text-dim">
           {readyCount} / {status.users.length} ready
           {status.users.length < 2 && ' · need at least 2 people'}
+          {!isFusing && status.all_ready && ' · fusing automatically...'}
         </p>
-        {status.all_ready && (
-          <button onClick={handleFuse} disabled={isFusing}
-            className="px-10 py-3.5 bg-gradient-to-r from-purple-500 to-accent hover:from-purple-400 hover:to-accent-light disabled:opacity-50 text-white text-lg font-bold rounded-xl shadow-xl transition-all animate-fade-in">
-            {isFusing ? (
-              <span className="flex items-center gap-2">
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Analyzing everyone&apos;s preferences...
-              </span>
-            ) : `Fuse! — End Round ${currentRound}`}
-          </button>
-        )}
         {error && <p className="text-sm text-red-400">{error}</p>}
       </div>
 

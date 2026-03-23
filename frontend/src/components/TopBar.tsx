@@ -10,12 +10,6 @@ interface Props {
   view: 'search' | 'mixer' | 'fuse';
   onViewChange: (v: 'search' | 'mixer' | 'fuse') => void;
   currentRound: number;
-  preferenceIntensity: number;
-  onPreferenceIntensityChange: (v: number) => void;
-  lam: number;
-  onLamChange: (v: number) => void;
-  kFetch: number;
-  onKFetchChange: (v: number) => void;
   steeringStrength: number;
   onSteeringStrengthChange: (v: number) => void;
   likedCount: number;
@@ -29,8 +23,6 @@ interface Props {
 
 export default function TopBar({
   userName, partyName, isAdmin, partyMembers, sessionId, view, onViewChange, currentRound,
-  preferenceIntensity, onPreferenceIntensityChange,
-  lam, onLamChange, kFetch, onKFetchChange,
   steeringStrength, onSteeringStrengthChange,
   likedCount, dislikedCount, mixerCount, onShowLikedPanel,
   onLeaveParty, onLeaveAssign, onCancelParty,
@@ -148,22 +140,6 @@ export default function TopBar({
                   <div className="space-y-5">
                     <div>
                       <label className="text-xs text-text-secondary flex justify-between mb-1.5">
-                        <span>Preference influence</span>
-                        <span className="text-text-dim font-mono">{Math.round(preferenceIntensity * 100)}%</span>
-                      </label>
-                      <input type="range" min={0} max={1} step={0.05} value={preferenceIntensity}
-                        onChange={e => onPreferenceIntensityChange(parseFloat(e.target.value))} className="w-full" />
-                      <div className="flex justify-between text-[10px] text-text-dim mt-0.5"><span>Explore</span><span>Personalize</span></div>
-                      <p className="text-[10px] text-text-dim/70 mt-1.5 leading-relaxed">
-                        Controls how your liked/disliked movies influence the <strong>sorting</strong> of results (not the search itself).
-                        At 0%, results are sorted purely by relevance score.
-                        At 100%, movies similar to ones you liked are pushed to the top,
-                        and movies similar to ones you disliked are pushed down.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-text-secondary flex justify-between mb-1.5">
                         <span>Steering strength</span>
                         <span className="text-text-dim font-mono">{steeringStrength.toFixed(2)}</span>
                       </label>
@@ -177,38 +153,6 @@ export default function TopBar({
                         At low values, the query/mixer dominates and genre/era have a light influence.
                         At high values, genre and era directions strongly shape what movies appear.
                         Applies equally whether used individually or combined.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-text-secondary flex justify-between mb-1.5">
-                        <span>Search blend (λ)</span>
-                        <span className="text-text-dim font-mono">{lam.toFixed(2)}</span>
-                      </label>
-                      <input type="range" min={0} max={1} step={0.05} value={lam}
-                        onChange={e => onLamChange(parseFloat(e.target.value))} className="w-full" />
-                      <div className="flex justify-between text-[10px] text-text-dim mt-0.5">
-                        <span>Graph (cast/genre)</span><span>Semantic (vibe/mood)</span>
-                      </div>
-                      <p className="text-[10px] text-text-dim/70 mt-1.5 leading-relaxed">
-                        Controls how results are ranked: graph similarity finds movies sharing cast, directors, and genre structure.
-                        Semantic similarity matches the mood and theme of your query text.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="text-xs text-text-secondary flex justify-between mb-1.5">
-                        <span>Candidate pool size</span>
-                        <span className="text-text-dim font-mono">{kFetch}</span>
-                      </label>
-                      <input type="range" min={10} max={100} step={5} value={kFetch}
-                        onChange={e => onKFetchChange(parseInt(e.target.value))} className="w-full" />
-                      <div className="flex justify-between text-[10px] text-text-dim mt-0.5">
-                        <span>Faster (fewer)</span><span>Better (more)</span>
-                      </div>
-                      <p className="text-[10px] text-text-dim/70 mt-1.5 leading-relaxed">
-                        How many movies to fetch before applying hard filters.
-                        Higher = better matches when filters are active, but slightly slower.
                       </p>
                     </div>
                   </div>
