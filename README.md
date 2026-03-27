@@ -1,0 +1,102 @@
+# MovieMatcher
+
+A movie recommendation app that uses graph neural network embeddings and Neo4j for semantic + structural search. Supports solo browsing and multiplayer group sessions ("Fuse").
+
+---
+
+## What it does
+
+- Semantic and graph-space search over a movie knowledge graph (Neo4j)
+- LLM-generated query reformulations and per-movie explanations (Gemini 2.5)
+- Genre/era/IMDB filters, preference-based re-ranking
+- Movie "Mixer" — blend two movies to find something in between
+- Knowledge graph exploration per movie
+- Fuse mode — multiplayer party where friends each explore separately, then the system finds a movie everyone will enjoy
+
+---
+
+## Stack
+
+- **Backend**: FastAPI + Neo4j + Gemini 2.5 Flash/Pro (via LangChain)
+- **Frontend**: Next.js + Tailwind CSS
+- **Embeddings**: GAT-based graph embeddings + Jina semantic embeddings (pre-built, stored in Neo4j)
+
+---
+
+## Setup
+
+### Prerequisites
+
+- Neo4j instance running with the movie graph loaded (see `scripts/data_pipeline/`)
+- Google Cloud project with Vertex AI enabled
+- Python 3.11+, Node.js 18+
+
+### Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+Create a `.env` file in `backend/`:
+
+```
+GOOGLE_CLOUD_PROJECT=your-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+TAVILY_API_KEY=tvly-...         # optional, only needed if web lookup is re-enabled
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your-password
+```
+
+Authenticate with Google Cloud:
+
+```bash
+gcloud auth application-default login
+```
+
+Start the server:
+
+```bash
+cd backend
+uvicorn main:app --reload --port 8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+App runs at `http://localhost:3000`, API at `http://localhost:8000`.
+
+---
+
+## Building the database from scratch
+
+Run the scripts in `scripts/data_pipeline/` in order:
+
+1. `create_from_movielens_movie_base_table.py` — merge MovieLens data into a base table
+2. `fetch_tmdb_metadata.py` — fetch movie metadata from TMDB API
+3. `build_pre_neo4j_tables_-2.py` — normalize into CSV tables
+4. `build_graph_dataset_-1.py` — filter to high-quality movies
+5. `build_neo4j.py` — load all CSVs into Neo4j
+6. `Creating_GAT.ipynb` (in `scripts/exploration_and_audit/`) — train the GAT and generate embeddings
+7. `neo4j_upload_embeddings.py` — write embeddings into Neo4j and create vector indexes
+8. `fix_director_actor_embeddings.py` — fix ID type mismatch for actor/director nodes
+9. `imdb_rating_enrich.py` — (optional) add IMDB ratings
+
+---
+
+## Project structure
+
+```
+backend/             FastAPI server + search logic
+frontend/            Next.js app
+scripts/
+  data_pipeline/     Scripts to build and load the database (run once)
+  exploration_and_audit/  Exploration, auditing, and visualization scripts
+GAT_files/           Pre-built graph embeddings (.npy files)
+```
