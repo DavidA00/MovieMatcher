@@ -1,6 +1,7 @@
 # MovieMatcher
 
-A movie recommendation app that uses graph neural network embeddings and Neo4j for semantic + structural search. Supports solo browsing and multiplayer group sessions ("Fuse").
+
+Choosing what movie to watch is rarely a one-step decision. Instead, it is a process of exploring possibilities, refining vague preferences, and negotiating trade-offs—especially in group settings. We argue that movie recommendation should be approached as an interactive search problem rather than a static prediction task. We present MovieMatcher, a system that combines query reformulation, steerable controls, and graph-based exploration with collaborative agent-based synthesis. MovieMatcher allows users to iteratively shape their search through natural language, adjustable constraints, and example-based mixing, while providing AI-generated explanations to support interpretability. The system also introduces Fuse, a round-based interaction that summarizes shared preferences and disagreements and generates new search directions. This design shifts the role of recommendation systems from traditional systems and chatbots to a framework where users and agents can collaborate together to reach consensus. We reflect on the challenges of balancing expressiveness and usability, and outline directions for designing exploratory and explainable retrieval systems.
 
 ---
 
